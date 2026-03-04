@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CropIQ — Smart Farmer</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+Telugu:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   ROOT VARIABLES
+═══════════════════════════════════════════ */
+:root {
+  --sun:    #ffb830;
+  --dawn:   #ff7043;
+  --sky1:   #1a3a5c;
+  --sky2:   #2e6fa3;
+  --sky3:   #f4a460;
+  --leaf:   #2e7d32;
+  --leafl:  #43a047;
+  --grass:  #33691e;
+  --soil:   #5d4037;
+  --cream:  #fffde7;
+  --gold:   #ffc107;
+  --white:  #ffffff;
+  --card-bg:#ffffffee;
+  --shadow: 0 8px 32px rgba(0,0,0,0.13);
+  --radius: 22px;
+  --font: 'Nunito', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family: var(--font);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: #0d2137;
+}
+
+/* ═══════════════════════════════════════════
+   ANIMATED SKY BACKGROUND
+═══════════════════════════════════════════ */
+.sky-scene {
+  position: fixed; inset: 0; z-index: 0;
+  background: linear-gradient(180deg,
+    #0d1f35 0%, #1a3a5c 25%, #2e6fa3 50%,
+    #e8874a 72%, #f4a460 82%, #5a8a3c 85%, #33691e 100%);
+  overflow: hidden;
+}
+
+/* Sun */
+.sun {
+  position: absolute;
+  width: 90px; height: 90px;
+  background: radial-gradient(circle, #fff7aa 30%, #ffcc02 60%, #ff8c00 100%);
+  border-radius: 50%;
+  top: 30%; left: 50%; transform: translate(-50%,-50%);
+  box-shadow: 0 0 60px 30px rgba(255,200,0,0.35), 0 0 120px 60px rgba(255,150,0,0.15);
+  animation: sun-pulse 4s ease-in-out infinite;
+}
+@keyframes sun-pulse {
+  0%,100% { box-shadow: 0 0 60px 30px rgba(255,200,0,0.35), 0 0 120px 60px rgba(255,150,0,0.15); }
+  50%      { box-shadow: 0 0 80px 40px rgba(255,220,0,0.5),  0 0 150px 80px rgba(255,150,0,0.2); }
+}
+
+/* Sun rays */
+.sun-rays {
+  position: absolute;
+  width: 300px; height: 300px;
+  top: 30%; left: 50%; transform: translate(-50%,-50%);
+  animation: ray-spin 20s linear infinite;
+}
+.sun-rays::before, .sun-rays::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-conic-gradient(rgba(255,220,100,0.08) 0deg 10deg, transparent 10deg 20deg);
+  border-radius: 50%;
+}
+.sun-rays::after { animation: ray-spin 15s linear infinite reverse; }
+@keyframes ray-spin { to { transform: rotate(360deg); } }
+
+/* Clouds */
+.cloud {
+  position: absolute;
+  background: rgba(255,255,255,0.12);
+  border-radius: 100px;
+  filter: blur(8px);
+  animation: cloud-drift linear infinite;
+}
+@keyframes cloud-drift {
+  from { transform: translateX(-200px); }
+  to   { transform: translateX(110vw); }
+}
+
+/* Hills */
+.hills {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 45%;
+}
+.hill {
+  position: absolute; bottom: 0;
+  border-radius: 50% 50% 0 0;
+}
+.hill-1 { width: 70%; height: 65%; left: -10%; background: #2e5a1a; }
+.hill-2 { width: 60%; height: 55%; right: -5%; background: #245016; }
+.hill-3 { width: 45%; height: 45%; left: 25%; background: #33691e; }
+
+/* Field rows */
+.field-rows {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 25%;
+  overflow: hidden;
+}
+.field-row {
+  position: absolute; bottom: 0; left: -10%; right: -10%;
+  height: 6px; border-radius: 3px;
+  background: rgba(0,0,0,0.2);
+}
+
+/* Trees */
+.tree {
+  position: absolute; bottom: 18%;
+  display: flex; flex-direction: column; align-items: center;
+}
+.tree-top { border-radius: 50%; }
+.tree-trunk { background: #5d4037; border-radius: 2px; }
+
+/* Stars */
+.stars { position: absolute; inset: 0; }
+.star {
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+  animation: twinkle ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%,100% { opacity: 0.8; transform: scale(1); }
+  50%      { opacity: 0.2; transform: scale(0.5); }
+}
+
+/* Birds */
+.bird {
+  position: absolute;
+  font-size: 18px;
+  animation: bird-fly linear infinite;
+  opacity: 0.7;
+}
+@keyframes bird-fly {
+  0%   { left: -60px; top: 18%; }
+  100% { left: 110%; top: 12%; }
+}
+
+/* ═══════════════════════════════════════════
+   LANGUAGE SELECTION PAGE
+═══════════════════════════════════════════ */
+#lang-page {
+  position: relative; z-index: 10;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px 20px;
+}
+
+.lang-page-logo {
+  font-size: 72px; margin-bottom: 12px;
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 8px 24px rgba(255,180,0,0.5));
+}
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
+.lang-page-title {
+  font-size: 40px; font-weight: 900; color: #fff;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  margin-bottom: 6px; text-align: center;
+}
+.lang-page-title span { color: var(--gold); }
+
+.lang-page-sub {
+  font-size: 16px; color: rgba(255,255,255,0.7);
+  margin-bottom: 36px; text-align: center; line-height: 1.5;
+}
+
+.lang-question {
+  font-size: 22px; font-weight: 800; color: #fff;
+  margin-bottom: 20px; text-align: center;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+
+.lang-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 14px; width: 100%; max-width: 400px;
+}
+
+.lang-card {
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(16px);
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 20px 14px;
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  transition: all 0.25s;
+  -webkit-user-select: none; user-select: none;
+}
+.lang-card:hover, .lang-card:active {
+  background: rgba(255,193,7,0.25);
+  border-color: var(--gold);
+  transform: scale(1.05);
+  box-shadow: 0 8px 32px rgba(255,180,0,0.3);
+}
+.lang-card .flag { font-size: 32px; }
+.lang-card .lang-name-native {
+  font-size: 20px; font-weight: 800; color: #fff;
+  text-align: center; line-height: 1.2;
+}
+.lang-card .lang-name-en {
+  font-size: 11px; color: rgba(255,255,255,0.6); font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════
+   MAIN APP
+═══════════════════════════════════════════ */
+#app { display: none; position: relative; z-index: 10; }
+
+/* Top bar */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(30,60,30,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 0 16px;
+  height: 58px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.topbar-logo { font-size: 26px; }
+.topbar-name { font-size: 20px; font-weight: 900; color: #fff; }
+.topbar-name span { color: var(--gold); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.change-lang-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 100px; padding: 6px 14px;
+  color: #fff; font-size: 13px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: all 0.2s;
+}
+.change-lang-btn:hover { background: rgba(255,193,7,0.2); border-color: var(--gold); color: var(--gold); }
+.current-lang-flag { font-size: 18px; }
+
+/* ─── HERO SECTION ── */
+.hero-wrap {
+  padding: 28px 20px 24px;
+  text-align: center;
+}
+.hero-title {
+  font-size: 30px; font-weight: 900; color: #fff;
+  line-height: 1.2;
+  text-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  margin-bottom: 8px;
+}
+.hero-title .highlight { color: var(--gold); }
+.hero-sub {
+  font-size: 14px; color: rgba(255,255,255,0.7);
+  line-height: 1.6; max-width: 340px; margin: 0 auto;
+}
+
+/* ─── FORM SECTION ── */
+.form-wrap { padding: 0 16px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+.glass-card {
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(20px);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.6);
+}
+
+.card-heading {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px;
+}
+.card-heading .ch-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  flex-shrink: 0;
+}
+.card-heading h3 {
+  font-size: 16px; font-weight: 800; color: #1b1b1b;
+  line-height: 1.2;
+}
+.card-heading p { font-size: 12px; color: #757575; margin-top: 2px; }
+
+/* Visual tap buttons */
+.vis-grid { display: grid; gap: 10px; }
+.vis-grid.g3 { grid-template-columns: repeat(3,1fr); }
+.vis-grid.g2 { grid-template-columns: repeat(2,1fr); }
+
+.vis-btn {
+  background: #f5f5f5;
+  border: 2.5px solid #e0e0e0;
+  border-radius: 16px; padding: 14px 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  cursor: pointer; transition: all 0.2s;
+  min-height: 90px; justify-content: center;
+  -webkit-user-select: none;
+}
+.vis-btn .vb-icon { font-size: 34px; line-height: 1; }
+.vis-btn .vb-en   { font-size: 12px; font-weight: 800; color: #444; text-align: center; }
+.vis-btn .vb-nat  { font-size: 11px; font-weight: 600; color: #777; text-align: center; line-height: 1.3; }
+.vis-btn.selected {
+  border-color: var(--leaf); background: #e8f5e9;
+  box-shadow: 0 4px 16px rgba(46,125,50,0.22);
+  transform: scale(1.04);
+}
+.vis-btn.selected .vb-en { color: var(--leaf); }
+
+/* Sliders */
+.slider-card { display: flex; flex-direction: column; gap: 14px; }
+.sl-row { background: #f8fdf8; border-radius: 14px; padding: 14px 16px; }
+.sl-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.sl-name { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: #1b1b1b; }
+.sl-name .sn-icon { font-size: 20px; }
+.sl-val {
+  font-size: 24px; font-weight: 900; color: var(--leaf);
+  background: #e8f5e9; border-radius: 10px;
+  padding: 2px 12px; line-height: 1.4;
+}
+.sl-emoji-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.sl-emoji { font-size: 18px; }
+
+input[type=range] {
+  -webkit-appearance: none; width: 100%; height: 10px;
+  border-radius: 100px; outline: none; cursor: pointer;
+  background: linear-gradient(90deg, var(--leaf) var(--pct,50%), #ddd var(--pct,50%));
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 30px; height: 30px;
+  border-radius: 50%; background: var(--leaf);
+  border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+}
+.sl-ticks { display: flex; justify-content: space-between; margin-top: 6px; }
+.sl-tick { font-size: 10px; color: #aaa; font-weight: 600; }
+
+/* Submit */
+.submit-area { padding: 0 16px 28px; }
+.submit-btn {
+  width: 100%; padding: 20px;
+  background: linear-gradient(135deg, #43a047 0%, #1b5e20 100%);
+  border: none; border-radius: 18px;
+  color: #fff;
+  font-family: var(--font); font-size: 20px; font-weight: 900;
+  cursor: pointer; transition: all 0.25s;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  box-shadow: 0 8px 28px rgba(46,125,50,0.45), 0 2px 6px rgba(0,0,0,0.1);
+  letter-spacing: 0.02em;
+  position: relative; overflow: hidden;
+}
+.submit-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+  border-radius: 18px;
+}
+.submit-btn:active { transform: scale(0.97); }
+.submit-btn .sb-icon { font-size: 26px; }
+
+/* ═══════════════════════════════════════════
+   LOADING
+═══════════════════════════════════════════ */
+.loading-screen {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(10,30,15,0.96);
+  flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+}
+.loading-screen.active { display: flex; }
+.loading-orb {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #a5d6a7, #2e7d32);
+  box-shadow: 0 0 40px 20px rgba(67,160,71,0.3);
+  animation: orb-pulse 1.2s ease-in-out infinite;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px;
+}
+@keyframes orb-pulse {
+  0%,100% { transform: scale(1); box-shadow: 0 0 40px 20px rgba(67,160,71,0.3); }
+  50%      { transform: scale(1.1); box-shadow: 0 0 60px 30px rgba(67,160,71,0.5); }
+}
+.loading-text {
+  font-size: 20px; font-weight: 800; color: #fff;
+  text-align: center; line-height: 1.5;
+}
+.loading-dots::after { content:''; animation: dots 1.5s infinite; }
+@keyframes dots { 0%{content:''} 33%{content:'.'} 66%{content:'..'} 100%{content:'...'} }
+.loading-bar-wrap {
+  width: 220px; height: 6px; background: rgba(255,255,255,0.1);
+  border-radius: 100px; overflow: hidden;
+}
+.loading-bar {
+  height: 100%; width: 0%; background: var(--gold);
+  border-radius: 100px; transition: width 0.3s;
+  animation: load-fill 1.2s ease-in-out infinite;
+}
+@keyframes load-fill {
+  0%   { width: 0%; }
+  100% { width: 100%; }
+}
+
+/* ═══════════════════════════════════════════
+   RESULTS PAGE
+═══════════════════════════════════════════ */
+#results-page { display: none; }
+#results-page.active { display: block; }
+
+.results-hero {
+  background: linear-gradient(160deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%);
+  padding: 24px 20px 20px;
+  position: relative; overflow: hidden;
+}
+.results-hero::before {
+  content: '🌾🌿🍃';
+  position: absolute; right: -10px; top: 10px;
+  font-size: 48px; opacity: 0.15; letter-spacing: 4px;
+}
+.results-hero h2 { font-size: 24px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+.results-hero .cond-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+}
+.cond-chip {
+  background: rgba(255,255,255,0.15); border-radius: 100px;
+  padding: 4px 12px; font-size: 12px; font-weight: 700; color: #fff;
+}
+
+.results-body { padding: 16px 16px 0; display: flex; flex-direction: column; gap: 16px; }
+
+/* Crop card */
+.crop-card {
+  background: rgba(255,255,255,0.95);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  animation: card-rise 0.5s ease both;
+}
+@keyframes card-rise {
+  from { opacity:0; transform: translateY(24px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+.crop-card:nth-child(2) { animation-delay: 0.1s; }
+.crop-card:nth-child(3) { animation-delay: 0.2s; }
+
+.cc-header {
+  padding: 18px 18px 14px;
+  display: flex; align-items: flex-start; gap: 14px;
+  position: relative;
+}
+.cc-rank {
+  position: absolute; top: 0; left: 0;
+  font-size: 11px; font-weight: 800;
+  padding: 5px 14px; border-radius: 0 0 14px 0;
+  letter-spacing: 0.05em;
+}
+.rank-gold   { background: linear-gradient(90deg,#ffd700,#ffa000); color: #5d4037; }
+.rank-silver { background: linear-gradient(90deg,#cfd8dc,#90a4ae); color: #263238; }
+.rank-bronze { background: linear-gradient(90deg,#d7a06b,#a0522d); color: #fff; }
+
+.cc-emoji { font-size: 52px; margin-top: 16px; flex-shrink:0; }
+.cc-info  { flex: 1; margin-top: 18px; }
+.cc-name  { font-size: 24px; font-weight: 900; color: #1b1b1b; }
+.cc-desc  { font-size: 12px; color: #757575; margin-top: 3px; line-height: 1.4; }
+.cc-score-pill {
+  position: absolute; top: 14px; right: 14px;
+  font-size: 22px; font-weight: 900; color: #fff;
+  background: var(--leaf);
+  border-radius: 14px; padding: 4px 14px;
+  box-shadow: 0 4px 12px rgba(46,125,50,0.3);
+}
+
+/* Score bar */
+.cc-bar-wrap { padding: 0 18px 10px; }
+.cc-bar-label {
+  display: flex; justify-content: space-between;
+  font-size: 11px; font-weight: 700; color: #9e9e9e;
+  margin-bottom: 5px;
+}
+.cc-bar-track { height: 10px; background: #eeeeee; border-radius: 100px; overflow: hidden; }
+.cc-bar-fill  {
+  height: 100%; border-radius: 100px; width: 0%;
+  transition: width 1.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.fill-ex { background: linear-gradient(90deg, #66bb6a, #2e7d32); }
+.fill-gd { background: linear-gradient(90deg, #ffa726, #f57c00); }
+.fill-md { background: linear-gradient(90deg, #ff7043, #bf360c); }
+.fill-lw { background: linear-gradient(90deg, #ef5350, #b71c1c); }
+
+/* Conditions grid */
+.cc-conds {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 6px;
+  padding: 0 14px 14px;
+}
+.cc-cond {
+  border-radius: 12px; padding: 9px 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.cc-cond.pass    { background: #e8f5e9; }
+.cc-cond.partial { background: #fff8e1; }
+.cc-cond.fail    { background: #ffebee; }
+.cc-cond .cond-icon { font-size: 18px; }
+.cc-cond .cond-lbl  { font-size: 9px; font-weight: 700; color: #757575; text-align: center; }
+.cc-cond .cond-st   { font-size: 10px; font-weight: 800;
+  color: #4caf50; }
+.cc-cond.partial .cond-st { color: #f57c00; }
+.cc-cond.fail    .cond-st { color: #e53935; }
+
+/* Steps */
+.cc-steps {
+  margin: 0 14px 16px;
+  background: linear-gradient(135deg, #e3f2fd, #e8f5e9);
+  border-radius: 14px; padding: 14px;
+  border-left: 4px solid #42a5f5;
+}
+.cc-steps-title { font-size: 12px; font-weight: 800; color: #1565c0; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+.cc-steps ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.cc-steps li { font-size: 13px; color: #1a237e; display: flex; gap: 7px; line-height: 1.4; }
+.cc-steps li::before { content: '→'; font-weight: 900; flex-shrink:0; color: #1565c0; }
+
+/* Export card */
+.export-card {
+  background: linear-gradient(135deg, #fff8e1, #fffde7);
+  border: 2px dashed #ffc107;
+  border-radius: var(--radius); padding: 20px;
+  box-shadow: var(--shadow);
+}
+.export-title { font-size: 16px; font-weight: 900; color: #e65100; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.export-desc  { font-size: 13px; color: #795548; margin-bottom: 16px; line-height: 1.5; }
+.export-btns  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.exp-btn {
+  padding: 14px 10px;
+  border: none; border-radius: 14px;
+  font-family: var(--font); font-size: 14px; font-weight: 800;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.exp-btn-pdf {
+  background: linear-gradient(135deg, #e53935, #b71c1c);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(229,57,53,0.3);
+}
+.exp-btn-img {
+  background: linear-gradient(135deg, #1e88e5, #1565c0);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(30,136,229,0.3);
+}
+.exp-btn:active { transform: scale(0.96); }
+
+/* Print card (hidden div for export) */
+#print-area {
+  position: absolute; left: -9999px; top: 0;
+  width: 380px; padding: 24px;
+  background: #fff; color: #1b1b1b;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* Bottom actions */
+.bottom-actions { padding: 16px 16px 32px; display: flex; flex-direction: column; gap: 10px; }
+.reset-btn {
+  width: 100%; padding: 16px;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 16px; color: #fff;
+  font-family: var(--font); font-size: 15px; font-weight: 800;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  backdrop-filter: blur(10px);
+}
+.reset-btn:hover { background: rgba(255,255,255,0.18); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: #c62828; color: #fff; padding: 13px 24px;
+  border-radius: 100px; font-size: 14px; font-weight: 800;
+  z-index: 500; opacity: 0; transition: opacity 0.3s;
+  pointer-events: none; white-space: nowrap; max-width: 90vw; text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.toast.show { opacity: 1; }
+
+/* Animations */
+@keyframes fade-up {
+  from { opacity:0; transform: translateY(20px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+.animate-in { animation: fade-up 0.6s ease both; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     SKY SCENE (always visible behind)
+══════════════════════════════════════════ -->
+<div class="sky-scene" id="sky-scene">
+  <div class="stars" id="stars"></div>
+  <div class="sun-rays"></div>
+  <div class="sun"></div>
+  <div id="clouds"></div>
+  <div class="hills">
+    <div class="hill hill-1"></div>
+    <div class="hill hill-2"></div>
+    <div class="hill hill-3"></div>
+  </div>
+  <div id="trees"></div>
+  <div id="birds"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LANGUAGE SELECTION PAGE
+══════════════════════════════════════════ -->
+<div id="lang-page">
+  <div class="lang-page-logo">🌾</div>
+  <div class="lang-page-title">Crop<span>IQ</span></div>
+  <div class="lang-page-sub">Smart Crop Advisor for Every Farmer</div>
+  <div class="lang-question" id="lq">Choose Your Language</div>
+  <div class="lang-grid">
+    <div class="lang-card" onclick="chooseLang('en')">
+      <div class="flag">🇬🇧</div>
+      <div class="lang-name-native">English</div>
+      <div class="lang-name-en">English</div>
+    </div>
+    <div class="lang-card" onclick="chooseLang('hi')">
+      <div class="flag">🇮🇳</div>
+      <div class="lang-name-native">हिंदी</div>
+      <div class="lang-name-en">Hindi</div>
+    </div>
+    <div class="lang-card" onclick="chooseLang('te')">
+      <div class="flag">🏛️</div>
+      <div class="lang-name-native">తెలుగు</div>
+      <div class="lang-name-en">Telugu</div>
+    </div>
+    <div class="lang-card" onclick="chooseLang('ta')">
+      <div class="flag">🌴</div>
+      <div class="lang-name-native">தமிழ்</div>
+      <div class="lang-name-en">Tamil</div>
+    </div>
+    <div class="lang-card" onclick="chooseLang('kn')">
+      <div class="flag">⚜️</div>
+      <div class="lang-name-native">ಕನ್ನಡ</div>
+      <div class="lang-name-en">Kannada</div>
+    </div>
+    <div class="lang-card" onclick="chooseLang('mr')">
+      <div class="flag">🟠</div>
+      <div class="lang-name-native">मराठी</div>
+      <div class="lang-name-en">Marathi</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════ -->
+<div id="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">🌾</span>
+      <span class="topbar-name">Crop<span>IQ</span></span>
+    </div>
+    <div class="topbar-right">
+      <button class="change-lang-btn" onclick="showLangPage()">
+        <span class="current-lang-flag" id="curr-flag">🇬🇧</span>
+        <span id="curr-lang-name">English</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero-wrap animate-in">
+    <div class="hero-title" id="h-title">Which crop is <span class="highlight">best</span> for your field?</div>
+    <div class="hero-sub" id="h-sub">Tap the pictures • Use sliders • Get instant recommendations</div>
+  </div>
+
+  <!-- FORM -->
+  <div class="form-wrap">
+
+    <!-- SOIL TYPE -->
+    <div class="glass-card animate-in">
+      <div class="card-heading">
+        <div class="ch-icon">🪨</div>
+        <div><h3 id="h-soil-title">What is your soil like?</h3><p id="h-soil-sub">Tap the one that matches your field</p></div>
+      </div>
+      <div class="vis-grid g3">
+        <div class="vis-btn" onclick="pick('soil','loamy',this)">
+          <div class="vb-icon">🟫</div>
+          <div class="vb-en" id="vb-loamy-en">Loamy</div>
+          <div class="vb-nat" id="vb-loamy-nat">మట్టి</div>
+        </div>
+        <div class="vis-btn" onclick="pick('soil','sandy',this)">
+          <div class="vb-icon">🏖️</div>
+          <div class="vb-en" id="vb-sandy-en">Sandy</div>
+          <div class="vb-nat" id="vb-sandy-nat">ఇసుక</div>
+        </div>
+        <div class="vis-btn" onclick="pick('soil','clay',this)">
+          <div class="vb-icon">🧱</div>
+          <div class="vb-en" id="vb-clay-en">Clay</div>
+          <div class="vb-nat" id="vb-clay-nat">బంక మట్టి</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WATER -->
+    <div class="glass-card animate-in">
+      <div class="card-heading">
+        <div class="ch-icon">💧</div>
+        <div><h3 id="h-water-title">How much water do you have?</h3><p id="h-water-sub">Tap your water level</p></div>
+      </div>
+      <div class="vis-grid g3">
+        <div class="vis-btn" onclick="pick('water','low',this)">
+          <div class="vb-icon">🏜️</div>
+          <div class="vb-en" id="vb-wl-en">Low</div>
+          <div class="vb-nat" id="vb-wl-nat">తక్కువ</div>
+        </div>
+        <div class="vis-btn" onclick="pick('water','medium',this)">
+          <div class="vb-icon">🌊</div>
+          <div class="vb-en" id="vb-wm-en">Medium</div>
+          <div class="vb-nat" id="vb-wm-nat">మధ్యస్థం</div>
+        </div>
+        <div class="vis-btn" onclick="pick('water','high',this)">
+          <div class="vb-icon">🌧️</div>
+          <div class="vb-en" id="vb-wh-en">High</div>
+          <div class="vb-nat" id="vb-wh-nat">అధికం</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEASON -->
+    <div class="glass-card animate-in">
+      <div class="card-heading">
+        <div class="ch-icon">📅</div>
+        <div><h3 id="h-season-title">Which season is it now?</h3><p id="h-season-sub">Tap your current season</p></div>
+      </div>
+      <div class="vis-grid g3">
+        <div class="vis-btn" onclick="pick('season','kharif',this)">
+          <div class="vb-icon">🌧️</div>
+          <div class="vb-en" id="vb-kh-en">Kharif</div>
+          <div class="vb-nat" id="vb-kh-nat">Jun–Oct</div>
+        </div>
+        <div class="vis-btn" onclick="pick('season','rabi',this)">
+          <div class="vb-icon">❄️</div>
+          <div class="vb-en" id="vb-ra-en">Rabi</div>
+          <div class="vb-nat" id="vb-ra-nat">Nov–Mar</div>
+        </div>
+        <div class="vis-btn" onclick="pick('season','summer',this)">
+          <div class="vb-icon">☀️</div>
+          <div class="vb-en" id="vb-su-en">Summer</div>
+          <div class="vb-nat" id="vb-su-nat">Apr–Jun</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDERS -->
+    <div class="glass-card animate-in">
+      <div class="card-heading">
+        <div class="ch-icon">🎚️</div>
+        <div><h3 id="h-sliders-title">Set your field conditions</h3><p id="h-sliders-sub">Slide to match your field</p></div>
+      </div>
+      <div class="slider-card">
+
+        <!-- Temperature -->
+        <div class="sl-row">
+          <div class="sl-head">
+            <div class="sl-name"><span class="sn-icon">🌡️</span><span id="sl-temp-lbl">Temperature</span></div>
+            <div class="sl-val" id="sv-temp">28°C</div>
+          </div>
+          <div class="sl-emoji-row"><span class="sl-emoji">🥶</span><span class="sl-emoji">😊</span><span class="sl-emoji">🥵</span></div>
+          <input type="range" id="r-temp" min="0" max="50" value="28" oninput="sl('temp',this.value,'°C',0,50,'sv-temp')">
+          <div class="sl-ticks"><span class="sl-tick">0°C Cold</span><span class="sl-tick">25°C</span><span class="sl-tick">50°C Hot</span></div>
+        </div>
+
+        <!-- Rainfall -->
+        <div class="sl-row">
+          <div class="sl-head">
+            <div class="sl-name"><span class="sn-icon">🌧️</span><span id="sl-rain-lbl">Monthly Rainfall</span></div>
+            <div class="sl-val" id="sv-rain">100mm</div>
+          </div>
+          <div class="sl-emoji-row"><span class="sl-emoji">☀️</span><span class="sl-emoji">🌦️</span><span class="sl-emoji">⛈️</span></div>
+          <input type="range" id="r-rain" min="0" max="400" value="100" oninput="sl('rain',this.value,'mm',0,400,'sv-rain')">
+          <div class="sl-ticks"><span class="sl-tick">0 Dry</span><span class="sl-tick">200mm</span><span class="sl-tick">400mm Heavy</span></div>
+        </div>
+
+        <!-- Humidity -->
+        <div class="sl-row">
+          <div class="sl-head">
+            <div class="sl-name"><span class="sn-icon">💦</span><span id="sl-hum-lbl">Humidity</span></div>
+            <div class="sl-val" id="sv-hum">60%</div>
+          </div>
+          <div class="sl-emoji-row"><span class="sl-emoji">🌵</span><span class="sl-emoji">😌</span><span class="sl-emoji">🌫️</span></div>
+          <input type="range" id="r-hum" min="0" max="100" value="60" oninput="sl('hum',this.value,'%',0,100,'sv-hum')">
+          <div class="sl-ticks"><span class="sl-tick">0% Dry</span><span class="sl-tick">50%</span><span class="sl-tick">100% Wet</span></div>
+        </div>
+
+        <!-- pH -->
+        <div class="sl-row">
+          <div class="sl-head">
+            <div class="sl-name"><span class="sn-icon">⚗️</span><span id="sl-ph-lbl">Soil pH</span></div>
+            <div class="sl-val" id="sv-ph">6.5</div>
+          </div>
+          <div class="sl-emoji-row"><span class="sl-emoji">🍋 Acid</span><span class="sl-emoji">✅ Neutral</span><span class="sl-emoji">Base 🧪</span></div>
+          <input type="range" id="r-ph" min="30" max="100" value="65" oninput="sl('ph',this.value,'',30,100,'sv-ph',true)">
+          <div class="sl-ticks"><span class="sl-tick">pH 3</span><span class="sl-tick">pH 6.5</span><span class="sl-tick">pH 10</span></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /form-wrap -->
+
+  <!-- SUBMIT -->
+  <div class="submit-area animate-in">
+    <button class="submit-btn" onclick="runRec()">
+      <span class="sb-icon">🔍</span>
+      <span id="h-submit">Find Best Crops!</span>
+    </button>
+  </div>
+
+</div><!-- /app -->
+
+
+<!-- ══════════════════════════════════════════
+     LOADING
+══════════════════════════════════════════ -->
+<div class="loading-screen" id="loading">
+  <div class="loading-orb">🌱</div>
+  <div class="loading-text" id="h-loading">Analysing your field<span class="loading-dots"></span></div>
+  <div style="font-size:13px;color:rgba(255,255,255,0.5);font-weight:600">Comparing 14 crops across 7 factors</div>
+  <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     RESULTS PAGE
+══════════════════════════════════════════ -->
+<div id="results-page">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">🌾</span>
+      <span class="topbar-name">Crop<span>IQ</span></span>
+    </div>
+    <div class="topbar-right">
+      <button class="change-lang-btn" onclick="showLangPage()">
+        <span class="current-lang-flag" id="curr-flag2">🇬🇧</span>
+        <span id="curr-lang-name2">English</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="results-hero">
+    <h2 id="r-title">✅ Best Crops For Your Field</h2>
+    <div class="cond-chips" id="r-chips"></div>
+  </div>
+
+  <div class="results-body" id="results-body"></div>
+
+  <!-- EXPORT -->
+  <div style="padding:0 16px 0">
+    <div class="export-card">
+      <div class="export-title">📤 <span id="h-export-title">Export Your Result</span></div>
+      <div class="export-desc" id="h-export-desc">Save or share these recommendations with your family, agricultural officer, or bank.</div>
+      <div class="export-btns">
+        <button class="exp-btn exp-btn-pdf" onclick="exportPDF()">
+          📄 <span id="h-exp-pdf">Save as PDF</span>
+        </button>
+        <button class="exp-btn exp-btn-img" onclick="exportIMG()">
+          🖼️ <span id="h-exp-img">Save as Image</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-actions">
+    <button class="reset-btn" onclick="resetApp()">← <span id="h-back">Try Again</span></button>
+  </div>
+
+</div><!-- /results-page -->
+
+<!-- PRINT AREA -->
+<div id="print-area"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// LANGUAGE DATA
+// ══════════════════════════════════════════
+const LANGS = {
+  en: {
+    flag:'🇬🇧', name:'English',
+    heroTitle:'Which crop is <span class="highlight">best</span> for your field?',
+    heroSub:'Tap the pictures • Use sliders • Get instant recommendations',
+    soilTitle:'What is your soil like?', soilSub:'Tap the one that matches your field',
+    waterTitle:'How much water do you have?', waterSub:'Tap your water level',
+    seasonTitle:'Which season is it now?', seasonSub:'Tap your current season',
+    slidersTitle:'Set your field conditions', slidersSub:'Slide to match your field',
+    submit:'Find Best Crops!',
+    loading:'Analysing your field',
+    soilNames:['Loamy','Sandy','Clay'], soilNat:['Rich soil','Sandy','Sticky clay'],
+    waterNames:['Low','Medium','High'], waterNat:['Little water','Some water','Lots of water'],
+    seasonNames:['Kharif','Rabi','Summer'], seasonNat:['Jun–Oct','Nov–Mar','Apr–Jun'],
+    tempLbl:'Temperature', rainLbl:'Monthly Rainfall', humLbl:'Humidity', phLbl:'Soil pH',
+    rTitle:'✅ Best Crops For Your Field',
+    rankLabel:['🥇 BEST MATCH','🥈 2ND CHOICE','🥉 3RD CHOICE'],
+    matchLabel:['Excellent Match','Good Match','Fair Match','Poor Match'],
+    nextTitle:'📋 What To Do Next',
+    condPass:'Good ✅', condPartial:'OK ⚠️', condFail:'Problem ❌',
+    exportTitle:'Export Your Result',
+    exportDesc:'Save or share these recommendations with your family, agricultural officer, or bank.',
+    expPdf:'Save as PDF', expImg:'Save as Image',
+    back:'Try Again',
+    errSoil:'Please select your soil type 🪨',
+    errWater:'Please select water level 💧',
+    errSeason:'Please select your season 📅',
+    langQ:'Choose Your Language',
+  },
+  hi: {
+    flag:'🇮🇳', name:'हिंदी',
+    heroTitle:'आपके खेत के लिए <span class="highlight">सबसे अच्छी</span> फसल कौन सी है?',
+    heroSub:'तस्वीरें टैप करें • स्लाइडर चलाएं • तुरंत सलाह पाएं',
+    soilTitle:'आपकी मिट्टी कैसी है?', soilSub:'अपने खेत की मिट्टी टैप करें',
+    waterTitle:'आपके पास कितना पानी है?', waterSub:'पानी का स्तर टैप करें',
+    seasonTitle:'अभी कौन सा मौसम है?', seasonSub:'अपना मौसम टैप करें',
+    slidersTitle:'खेत की स्थिति सेट करें', slidersSub:'स्लाइडर से सेट करें',
+    submit:'सबसे अच्छी फसल खोजें! 🔍',
+    loading:'आपके खेत का विश्लेषण',
+    soilNames:['दोमट','रेतीली','चिकनी मिट्टी'], soilNat:['Loamy','Sandy','Clay'],
+    waterNames:['कम','मध्यम','अधिक'], waterNat:['Low','Medium','High'],
+    seasonNames:['खरीफ','रबी','गर्मी'], seasonNat:['जून–अक्टूबर','नवं–मार्च','अप्रैल–जून'],
+    tempLbl:'तापमान', rainLbl:'मासिक वर्षा', humLbl:'नमी', phLbl:'मिट्टी pH',
+    rTitle:'✅ आपके खेत के लिए सबसे अच्छी फसलें',
+    rankLabel:['🥇 सबसे अच्छी','🥈 दूसरा विकल्प','🥉 तीसरा विकल्प'],
+    matchLabel:['शानदार मिलान','अच्छा मिलान','ठीक-ठाक','कम उपयुक्त'],
+    nextTitle:'📋 आगे क्या करें',
+    condPass:'अच्छा ✅', condPartial:'ठीक ⚠️', condFail:'समस्या ❌',
+    exportTitle:'परिणाम निर्यात करें',
+    exportDesc:'इन सिफारिशों को परिवार, कृषि अधिकारी या बैंक को दिखाएं।',
+    expPdf:'PDF सेव करें', expImg:'इमेज सेव करें',
+    back:'दोबारा कोशिश करें',
+    errSoil:'कृपया मिट्टी का प्रकार चुनें 🪨',
+    errWater:'कृपया पानी का स्तर चुनें 💧',
+    errSeason:'कृपया मौसम चुनें 📅',
+    langQ:'अपनी भाषा चुनें',
+  },
+  te: {
+    flag:'🏛️', name:'తెలుగు',
+    heroTitle:'మీ పొలానికి <span class="highlight">అత్యుత్తమ</span> పంట ఏది?',
+    heroSub:'చిత్రాలు నొక్కండి • స్లైడర్లు సరిచేయండి • తక్షణ సలహా పొందండి',
+    soilTitle:'మీ మట్టి ఎలా ఉంది?', soilSub:'మీ పొలం మట్టిని నొక్కండి',
+    waterTitle:'మీ దగ్గర నీరు ఎంత ఉంది?', waterSub:'నీటి స్థాయిని నొక్కండి',
+    seasonTitle:'ఇప్పుడు ఏ సీజన్?', seasonSub:'మీ సీజన్ నొక్కండి',
+    slidersTitle:'పొలం పరిస్థితులు సెట్ చేయండి', slidersSub:'స్లైడర్ సర్దుబాటు చేయండి',
+    submit:'మంచి పంటలు చూపించు! 🔍',
+    loading:'మీ పొలాన్ని విశ్లేషిస్తున్నాం',
+    soilNames:['నేల మట్టి','ఇసుక మట్టి','బంక మట్టి'], soilNat:['Loamy','Sandy','Clay'],
+    waterNames:['తక్కువ','మధ్యస్థం','అధికం'], waterNat:['Low','Medium','High'],
+    seasonNames:['ఖరీఫ్','రబీ','వేసవి'], seasonNat:['జూన్–అక్టో','నవం–మార్చి','ఏప్రి–జూన్'],
+    tempLbl:'ఉష్ణోగ్రత', rainLbl:'నెలవారీ వర్షం', humLbl:'తేమ', phLbl:'మట్టి pH',
+    rTitle:'✅ మీ పొలానికి ఉత్తమ పంటలు',
+    rankLabel:['🥇 అత్యుత్తమ పంట','🥈 రెండవ పంట','🥉 మూడవ పంట'],
+    matchLabel:['అద్భుతమైన మ్యాచ్','మంచి మ్యాచ్','సాధారణ','తక్కువ అనువైన'],
+    nextTitle:'📋 తరువాత ఏమి చేయాలి',
+    condPass:'మంచిది ✅', condPartial:'సరే ⚠️', condFail:'సమస్య ❌',
+    exportTitle:'ఫలితం ఎగుమతి చేయండి',
+    exportDesc:'ఈ సిఫారసులను కుటుంబానికి, వ్యవసాయ అధికారికి లేదా బ్యాంకుకు చూపించండి.',
+    expPdf:'PDF సేవ్ చేయండి', expImg:'చిత్రం సేవ్ చేయండి',
+    back:'మళ్ళీ ప్రయత్నించు',
+    errSoil:'దయచేసి మట్టి రకాన్ని ఎంచుకోండి 🪨',
+    errWater:'దయచేసి నీటి స్థాయిని ఎంచుకోండి 💧',
+    errSeason:'దయచేసి సీజన్‌ను ఎంచుకోండి 📅',
+    langQ:'మీ భాషను ఎంచుకోండి',
+  },
+  ta: {
+    flag:'🌴', name:'தமிழ்',
+    heroTitle:'உங்கள் வயலுக்கு <span class="highlight">சிறந்த</span> பயிர் எது?',
+    heroSub:'படங்களை தட்டவும் • ஸ்லைடர்கள் பயன்படுத்தவும் • உடனே ஆலோசனை பெறவும்',
+    soilTitle:'உங்கள் மண் எப்படி உள்ளது?', soilSub:'உங்கள் மண் வகையை தட்டவும்',
+    waterTitle:'உங்களிடம் எவ்வளவு நீர் உள்ளது?', waterSub:'நீர் அளவை தட்டவும்',
+    seasonTitle:'இப்போது என்ன பருவம்?', seasonSub:'உங்கள் பருவத்தை தட்டவும்',
+    slidersTitle:'வயல் நிலைமைகளை அமைக்கவும்', slidersSub:'ஸ்லைடரை சரிசெய்யவும்',
+    submit:'சிறந்த பயிர்கள் காட்டு! 🔍',
+    loading:'உங்கள் வயலை பகுப்பாய்வு செய்கிறோம்',
+    soilNames:['வண்டல் மண்','மணல் மண்','களிமண்'], soilNat:['Loamy','Sandy','Clay'],
+    waterNames:['குறைவு','நடுத்தரம்','அதிகம்'], waterNat:['Low','Medium','High'],
+    seasonNames:['கரீஃப்','ரபி','கோடை'], seasonNat:['ஜூன்–அக்','நவ–மார்','ஏப்–ஜூன்'],
+    tempLbl:'வெப்பநிலை', rainLbl:'மாதாந்திர மழை', humLbl:'ஈரப்பதம்', phLbl:'மண் pH',
+    rTitle:'✅ உங்கள் வயலுக்கு சிறந்த பயிர்கள்',
+    rankLabel:['🥇 சிறந்த பயிர்','🥈 இரண்டாவது','🥉 மூன்றாவது'],
+    matchLabel:['சிறப்பான பொருத்தம்','நல்ல பொருத்தம்','சாதாரண','குறைவான'],
+    nextTitle:'📋 அடுத்து என்ன செய்வது',
+    condPass:'நல்லது ✅', condPartial:'சரி ⚠️', condFail:'பிரச்சனை ❌',
+    exportTitle:'முடிவை ஏற்றுமதி செய்யவும்',
+    exportDesc:'இந்த பரிந்துரைகளை குடும்பம், வேளாண் அதிகாரி அல்லது வங்கிக்கு காட்டவும்.',
+    expPdf:'PDF சேமி', expImg:'படம் சேமி',
+    back:'மீண்டும் முயற்சிக்கவும்',
+    errSoil:'தயவுசெய்து மண் வகையை தேர்ந்தெடுக்கவும் 🪨',
+    errWater:'தயவுசெய்து நீர் அளவை தேர்ந்தெடுக்கவும் 💧',
+    errSeason:'தயவுசெய்து பருவத்தை தேர்ந்தெடுக்கவும் 📅',
+    langQ:'உங்கள் மொழியை தேர்ந்தெடுக்கவும்',
+  },
+  kn: {
+    flag:'⚜️', name:'ಕನ್ನಡ',
+    heroTitle:'ನಿಮ್ಮ ಹೊಲಕ್ಕೆ <span class="highlight">ಅತ್ಯುತ್ತಮ</span> ಬೆಳೆ ಯಾವುದು?',
+    heroSub:'ಚಿತ್ರಗಳನ್ನು ಟ್ಯಾಪ್ ಮಾಡಿ • ಸ್ಲೈಡರ್ ಬಳಸಿ • ತಕ್ಷಣ ಸಲಹೆ ಪಡೆಯಿರಿ',
+    soilTitle:'ನಿಮ್ಮ ಮಣ್ಣು ಹೇಗಿದೆ?', soilSub:'ನಿಮ್ಮ ಮಣ್ಣಿನ ಪ್ರಕಾರ ಟ್ಯಾಪ್ ಮಾಡಿ',
+    waterTitle:'ನಿಮ್ಮಲ್ಲಿ ಎಷ್ಟು ನೀರು ಇದೆ?', waterSub:'ನೀರಿನ ಮಟ್ಟ ಟ್ಯಾಪ್ ಮಾಡಿ',
+    seasonTitle:'ಈಗ ಯಾವ ಋತು?', seasonSub:'ನಿಮ್ಮ ಋತು ಟ್ಯಾಪ್ ಮಾಡಿ',
+    slidersTitle:'ಹೊಲದ ಪರಿಸ್ಥಿತಿ ಹೊಂದಿಸಿ', slidersSub:'ಸ್ಲೈಡರ್ ಸರಿಹೊಂದಿಸಿ',
+    submit:'ಅತ್ಯುತ್ತಮ ಬೆಳೆ ತೋರಿಸು! 🔍',
+    loading:'ನಿಮ್ಮ ಹೊಲ ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ',
+    soilNames:['ಲೋಮ್ ಮಣ್ಣು','ಮರಳು ಮಣ್ಣು','ಜೇಡಿ ಮಣ್ಣು'], soilNat:['Loamy','Sandy','Clay'],
+    waterNames:['ಕಡಿಮೆ','ಮಧ್ಯಮ','ಹೆಚ್ಚು'], waterNat:['Low','Medium','High'],
+    seasonNames:['ಖರೀಫ್','ರಬಿ','ಬೇಸಿಗೆ'], seasonNat:['ಜೂನ್–ಅಕ್ಟೋ','ನವೆ–ಮಾರ್ಚ್','ಏಪ್ರಿ–ಜೂನ್'],
+    tempLbl:'ತಾಪಮಾನ', rainLbl:'ಮಾಸಿಕ ಮಳೆ', humLbl:'ತೇವಾಂಶ', phLbl:'ಮಣ್ಣಿನ pH',
+    rTitle:'✅ ನಿಮ್ಮ ಹೊಲಕ್ಕೆ ಉತ್ತಮ ಬೆಳೆಗಳು',
+    rankLabel:['🥇 ಅತ್ಯುತ್ತಮ','🥈 ಎರಡನೇ ಆಯ್ಕೆ','🥉 ಮೂರನೇ ಆಯ್ಕೆ'],
+    matchLabel:['ಅದ್ಭುತ ಹೊಂದಾಣಿಕೆ','ಒಳ್ಳೆಯ ಹೊಂದಾಣಿಕೆ','ಸಾಧಾರಣ','ಕಡಿಮೆ ಸೂಕ್ತ'],
+    nextTitle:'📋 ಮುಂದೆ ಏನು ಮಾಡಬೇಕು',
+    condPass:'ಚೆನ್ನಾಗಿದೆ ✅', condPartial:'ಸರಿ ⚠️', condFail:'ಸಮಸ್ಯೆ ❌',
+    exportTitle:'ಫಲಿತಾಂಶ ರಫ್ತು ಮಾಡಿ',
+    exportDesc:'ಈ ಶಿಫಾರಸುಗಳನ್ನು ಕುಟುಂಬ, ಕೃಷಿ ಅಧಿಕಾರಿ ಅಥವಾ ಬ್ಯಾಂಕ್‌ಗೆ ತೋರಿಸಿ.',
+    expPdf:'PDF ಸೇವ್ ಮಾಡಿ', expImg:'ಚಿತ್ರ ಸೇವ್ ಮಾಡಿ',
+    back:'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
+    errSoil:'ದಯವಿಟ್ಟು ಮಣ್ಣಿನ ಪ್ರಕಾರ ಆಯ್ಕೆ ಮಾಡಿ 🪨',
+    errWater:'ದಯವಿಟ್ಟು ನೀರಿನ ಮಟ್ಟ ಆಯ್ಕೆ ಮಾಡಿ 💧',
+    errSeason:'ದಯವಿಟ್ಟು ಋತು ಆಯ್ಕೆ ಮಾಡಿ 📅',
+    langQ:'ನಿಮ್ಮ ಭಾಷೆ ಆಯ್ಕೆ ಮಾಡಿ',
+  },
+  mr: {
+    flag:'🟠', name:'मराठी',
+    heroTitle:'तुमच्या शेतासाठी <span class="highlight">सर्वोत्तम</span> पीक कोणते?',
+    heroSub:'चित्रे टॅप करा • स्लाइडर वापरा • त्वरित सल्ला मिळवा',
+    soilTitle:'तुमची माती कशी आहे?', soilSub:'तुमच्या शेताची माती टॅप करा',
+    waterTitle:'तुमच्याकडे किती पाणी आहे?', waterSub:'पाण्याची पातळी टॅप करा',
+    seasonTitle:'आता कोणता हंगाम आहे?', seasonSub:'तुमचा हंगाम टॅप करा',
+    slidersTitle:'शेताची स्थिती सेट करा', slidersSub:'स्लाइडरने सेट करा',
+    submit:'सर्वोत्तम पिके शोधा! 🔍',
+    loading:'तुमच्या शेताचे विश्लेषण',
+    soilNames:['चिकण माती','वालुकामय','काळी माती'], soilNat:['Loamy','Sandy','Clay'],
+    waterNames:['कमी','मध्यम','जास्त'], waterNat:['Low','Medium','High'],
+    seasonNames:['खरीप','रब्बी','उन्हाळी'], seasonNat:['जून–ऑक्टो','नोव्हें–मार्च','एप्रिल–जून'],
+    tempLbl:'तापमान', rainLbl:'मासिक पाऊस', humLbl:'आर्द्रता', phLbl:'माती pH',
+    rTitle:'✅ तुमच्या शेतासाठी सर्वोत्तम पिके',
+    rankLabel:['🥇 सर्वोत्तम','🥈 दुसरी निवड','🥉 तिसरी निवड'],
+    matchLabel:['उत्कृष्ट जुळणी','चांगली जुळणी','ठीक आहे','कमी योग्य'],
+    nextTitle:'📋 पुढे काय करावे',
+    condPass:'चांगले ✅', condPartial:'ठीक ⚠️', condFail:'समस्या ❌',
+    exportTitle:'निकाल निर्यात करा',
+    exportDesc:'हे सल्ले कुटुंब, कृषी अधिकारी किंवा बँकेला दाखवा.',
+    expPdf:'PDF सेव्ह करा', expImg:'इमेज सेव्ह करा',
+    back:'पुन्हा प्रयत्न करा',
+    errSoil:'कृपया मातीचा प्रकार निवडा 🪨',
+    errWater:'कृपया पाण्याची पातळी निवडा 💧',
+    errSeason:'कृपया हंगाम निवडा 📅',
+    langQ:'तुमची भाषा निवडा',
+  }
+};
+
+// ══════════════════════════════════════════
+// CROP DATABASE
+// ══════════════════════════════════════════
+const CROPS = {
+  "Rice":      { emoji:'🍚', ph:[5.5,7.0], temp:[20,35], rain:[150,300], hum:[70,100], soil:["loamy","clay"],  water:["high"],         seasons:["kharif"],          desc:"Staple cereal; loves water & humidity.", steps:["Flood field before planting","Use certified paddy seeds","Plant in rows, 20cm apart","Water daily for first 2 weeks","Harvest after 3-4 months"] },
+  "Wheat":     { emoji:'🌾', ph:[6.0,7.5], temp:[10,25], rain:[40,100],  hum:[40,70],  soil:["loamy","clay"],  water:["medium","high"],seasons:["rabi"],            desc:"Cool-season grain; fertile loam/clay.", steps:["Plough deep before sowing","Sow seeds Oct–Nov","Irrigate 4–6 times","Apply urea at 3 weeks","Harvest in March–April"] },
+  "Maize":     { emoji:'🌽', ph:[5.8,7.0], temp:[18,32], rain:[60,120],  hum:[50,80],  soil:["loamy","sandy"], water:["medium"],       seasons:["kharif","rabi"],   desc:"Versatile corn; warm well-drained soil.", steps:["Plant seeds 5cm deep","Space rows 60cm","Apply fertilizer at 3 weeks","Water every 5–7 days","Harvest when husks dry"] },
+  "Cotton":    { emoji:'🌿', ph:[6.0,8.0], temp:[21,35], rain:[50,100],  hum:[40,65],  soil:["loamy","clay"],  water:["medium"],       seasons:["kharif"],          desc:"Cash crop; warm moderate-water fields.", steps:["Sow in April–May","Space plants 90×60cm","Use drip irrigation","Spray for pests every 2 weeks","Pick cotton bolls when open"] },
+  "Sugarcane": { emoji:'🎋', ph:[6.0,7.5], temp:[25,38], rain:[100,200], hum:[60,90],  soil:["loamy","clay"],  water:["high"],         seasons:["kharif","summer"], desc:"High-water crop; tropical heat.", steps:["Plant stem cuttings 4cm deep","Furrow irrigate every 7–10 days","Apply compost at 30 days","Weed at 30 & 60 days","Harvest after 10–12 months"] },
+  "Groundnut": { emoji:'🥜', ph:[5.5,7.0], temp:[25,35], rain:[50,100],  hum:[40,65],  soil:["sandy","loamy"], water:["low","medium"], seasons:["kharif","summer"], desc:"Oilseed legume; light sandy loam.", steps:["Sow seeds 5cm deep","Light irrigation only","Earth up at 30 days","Stop water 2 weeks before harvest","Harvest before pod skin turns brown"] },
+  "Soybean":   { emoji:'🫘', ph:[6.0,7.0], temp:[20,30], rain:[60,100],  hum:[50,75],  soil:["loamy","clay"],  water:["medium"],       seasons:["kharif"],          desc:"Protein legume; well-drained loam.", steps:["Sow June–July","Inoculate with Rhizobium","Weed at 20 & 40 days","Apply phosphorus fertilizer","Harvest when pods turn brown"] },
+  "Mustard":   { emoji:'🌼', ph:[6.0,7.5], temp:[8,22],  rain:[30,70],   hum:[30,60],  soil:["loamy","sandy"], water:["low","medium"], seasons:["rabi"],            desc:"Drought-tolerant oilseed; cool season.", steps:["Sow Oct–Nov in cool weather","Only 2–3 irrigations needed","Apply nitrogen at sowing","Thin to 15cm spacing","Harvest when 60% pods turn golden"] },
+  "Potato":    { emoji:'🥔', ph:[4.8,6.5], temp:[10,20], rain:[50,100],  hum:[60,80],  soil:["loamy","sandy"], water:["medium"],       seasons:["rabi"],            desc:"Cool tuber; loose well-aerated soil.", steps:["Plant seed potatoes 10cm deep","Hill soil at 30 days","Irrigate every 7–10 days","Watch for blight disease","Harvest when tops die back"] },
+  "Tomato":    { emoji:'🍅', ph:[6.0,7.0], temp:[18,30], rain:[40,100],  hum:[45,70],  soil:["loamy","sandy"], water:["medium"],       seasons:["rabi","summer"],   desc:"Warm vegetable; well-drained loam.", steps:["Transplant 4–5 week seedlings","Stake plants at 30cm height","Spray fungicide every 2 weeks","Water regularly but don't flood","Harvest when fruits turn red"] },
+  "Millet":    { emoji:'🌿', ph:[5.5,7.5], temp:[25,38], rain:[30,70],   hum:[30,60],  soil:["sandy","loamy"], water:["low"],          seasons:["kharif","summer"], desc:"Drought-hardy grain; hot dry soil.", steps:["Sow at start of monsoon","Very little water needed","Thin to 15cm spacing","No heavy fertilizer required","Harvest when grain hardens"] },
+  "Chickpea":  { emoji:'🫛', ph:[6.0,8.0], temp:[15,28], rain:[30,70],   hum:[30,55],  soil:["loamy","sandy"], water:["low"],          seasons:["rabi"],            desc:"Dry-season legume; light soil.", steps:["Sow Oct–Nov after kharif","Only 1–2 irrigations","Apply phosphorus fertilizer","Watch for pod borer insect","Harvest when plants dry"] },
+  "Sunflower": { emoji:'🌻', ph:[6.0,7.5], temp:[20,32], rain:[50,100],  hum:[40,65],  soil:["loamy","sandy"], water:["medium"],       seasons:["kharif","summer"], desc:"Oilseed; adaptable moderate-moisture.", steps:["Sow seeds 4cm deep","Space 60×30cm","Irrigate at flowering stage","Protect from birds at seed stage","Harvest when back of head turns brown"] },
+  "Jute":      { emoji:'🪢', ph:[5.0,7.0], temp:[25,35], rain:[150,250], hum:[70,90],  soil:["loamy","clay"],  water:["high"],         seasons:["kharif"],          desc:"Fiber crop; abundant rain & humidity.", steps:["Sow April–May densely","Keep soil moist always","Thin to 7–8cm spacing","Harvest at 60% flower stage","Ret in water 10–15 days"] },
+};
+
+const WEIGHTS = { ph:0.15, temp:0.20, rain:0.20, hum:0.10, soil:0.15, water:0.10, season:0.10 };
+const FACTOR_META = {
+  ph:{ icon:'⚗️', lbl:'pH' }, temp:{ icon:'🌡️', lbl:'Temp' },
+  rain:{ icon:'🌧️', lbl:'Rain' }, hum:{ icon:'💧', lbl:'Humidity' },
+  soil:{ icon:'🪨', lbl:'Soil' }, water:{ icon:'🚿', lbl:'Water' },
+  season:{ icon:'📅', lbl:'Season' }
+};
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let lang = 'en';
+let L = LANGS['en'];
+let picks = { soil: null, water: null, season: null };
+let lastResults = null;
+let lastInputs  = null;
+
+// ══════════════════════════════════════════
+// SKY SCENE SETUP
+// ══════════════════════════════════════════
+(function buildScene() {
+  // Stars
+  const sf = document.getElementById('stars');
+  for (let i=0; i<60; i++) {
+    const s = document.createElement('div'); s.className='star';
+    const sz = 1 + Math.random()*2;
+    s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*40}%;animation-duration:${2+Math.random()*3}s;animation-delay:${-Math.random()*5}s;`;
+    sf.appendChild(s);
+  }
+  // Clouds
+  const cf = document.getElementById('clouds');
+  const cloudData = [[10,8,120,50,22],[20,12,80,45,18],[35,5,150,55,28],[60,10,100,50,20],[80,7,130,48,24]];
+  cloudData.forEach(([l,t,w,h,dur]) => {
+    const c = document.createElement('div'); c.className='cloud';
+    c.style.cssText=`left:${l}%;top:${t}%;width:${w}px;height:${h}px;animation-duration:${dur}s;animation-delay:-${Math.random()*dur}s;`;
+    cf.appendChild(c);
+  });
+  // Trees
+  const tf = document.getElementById('trees');
+  const treePos = [5,12,20,75,83,90,95];
+  treePos.forEach(p => {
+    const t = document.createElement('div'); t.className='tree';
+    const h = 30 + Math.random()*30;
+    t.style.cssText = `left:${p}%;bottom:20%;`;
+    t.innerHTML = `<div class="tree-top" style="width:${h*0.7}px;height:${h}px;background:${p<50?'#2e5a1a':'#1a4510'};"></div><div class="tree-trunk" style="width:${h*0.15}px;height:${h*0.4}px;"></div>`;
+    tf.appendChild(t);
+  });
+  // Field rows
+  // Birds
+  const bf = document.getElementById('birds');
+  ['🦅','🐦','🦜'].forEach((b,i) => {
+    const bd = document.createElement('div'); bd.className='bird'; bd.textContent=b;
+    bd.style.cssText=`animation-duration:${18+i*6}s;animation-delay:-${i*7}s;top:${14+i*4}%;`;
+    bf.appendChild(bd);
+  });
+})();
+
+// ══════════════════════════════════════════
+// LANGUAGE SETUP
+// ══════════════════════════════════════════
+function chooseLang(code) {
+  lang = code; L = LANGS[code];
+  document.getElementById('lang-page').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  applyLang();
+}
+
+function showLangPage() {
+  document.getElementById('results-page').classList.remove('active');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('lang-page').style.display = 'flex';
+  document.getElementById('lq').textContent = L.langQ;
+}
+
+function applyLang() {
+  // Update flag/name displays
+  [document.getElementById('curr-flag'), document.getElementById('curr-flag2')].forEach(e => { if(e) e.textContent = L.flag; });
+  [document.getElementById('curr-lang-name'), document.getElementById('curr-lang-name2')].forEach(e => { if(e) e.textContent = L.name; });
+
+  document.getElementById('h-title').innerHTML  = L.heroTitle;
+  document.getElementById('h-sub').textContent   = L.heroSub;
+  document.getElementById('h-soil-title').textContent    = L.soilTitle;
+  document.getElementById('h-soil-sub').textContent      = L.soilSub;
+  document.getElementById('h-water-title').textContent   = L.waterTitle;
+  document.getElementById('h-water-sub').textContent     = L.waterSub;
+  document.getElementById('h-season-title').textContent  = L.seasonTitle;
+  document.getElementById('h-season-sub').textContent    = L.seasonSub;
+  document.getElementById('h-sliders-title').textContent = L.slidersTitle;
+  document.getElementById('h-sliders-sub').textContent   = L.slidersSub;
+  document.getElementById('h-submit').textContent        = L.submit;
+  document.getElementById('sl-temp-lbl').textContent = L.tempLbl;
+  document.getElementById('sl-rain-lbl').textContent = L.rainLbl;
+  document.getElementById('sl-hum-lbl').textContent  = L.humLbl;
+  document.getElementById('sl-ph-lbl').textContent   = L.phLbl;
+
+  // Soil buttons
+  ['loamy','sandy','clay'].forEach((s,i) => {
+    document.getElementById(`vb-${s==='loamy'?'loamy':s==='sandy'?'sandy':'clay'}-en`).textContent  = L.soilNames[i];
+    document.getElementById(`vb-${s==='loamy'?'loamy':s==='sandy'?'sandy':'clay'}-nat`).textContent = L.soilNat[i];
+  });
+  const wIds = ['wl','wm','wh'];
+  wIds.forEach((id,i) => {
+    document.getElementById(`vb-${id}-en`).textContent  = L.waterNames[i];
+    document.getElementById(`vb-${id}-nat`).textContent = L.waterNat[i];
+  });
+  const seIds = ['kh','ra','su'];
+  seIds.forEach((id,i) => {
+    document.getElementById(`vb-${id}-en`).textContent  = L.seasonNames[i];
+    document.getElementById(`vb-${id}-nat`).textContent = L.seasonNat[i];
+  });
+  document.getElementById('h-export-title').textContent = L.exportTitle;
+  document.getElementById('h-export-desc').textContent  = L.exportDesc;
+  document.getElementById('h-exp-pdf').textContent      = L.expPdf;
+  document.getElementById('h-exp-img').textContent      = L.expImg;
+  document.getElementById('h-back').textContent         = L.back;
+}
+
+// ══════════════════════════════════════════
+// FORM LOGIC
+// ══════════════════════════════════════════
+function pick(field, val, el) {
+  picks[field] = val;
+  el.closest('.glass-card').querySelectorAll('.vis-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function sl(field, raw, unit, min, max, dispId, isph=false) {
+  const pct = ((raw - min) / (max - min)) * 100;
+  const slider = document.getElementById('r-' + field);
+  slider.style.setProperty('--pct', pct + '%');
+  const val = isph ? (raw / 10).toFixed(1) : raw;
+  document.getElementById(dispId).textContent = val + unit;
+}
+
+// Init
+['temp','rain','hum'].forEach(f => {
+  const s = document.getElementById('r-' + f);
+  const units = { temp:'°C', rain:'mm', hum:'%' };
+  const maxes = { temp:50, rain:400, hum:100 };
+  sl(f, s.value, units[f], 0, maxes[f], 'sv-' + f);
+});
+sl('ph', 65, '', 30, 100, 'sv-ph', true);
+
+function getInputs() {
+  return {
+    ph:     parseFloat((document.getElementById('r-ph').value / 10).toFixed(1)),
+    temp:   parseFloat(document.getElementById('r-temp').value),
+    rain:   parseFloat(document.getElementById('r-rain').value),
+    hum:    parseFloat(document.getElementById('r-hum').value),
+    soil:   picks.soil,
+    water:  picks.water,
+    season: picks.season,
+  };
+}
+
+// ══════════════════════════════════════════
+// SCORING ENGINE
+// ══════════════════════════════════════════
+function scoreRange(val, lo, hi) {
+  if (val >= lo && val <= hi) return { score:1.0, status:'pass' };
+  const spread = Math.max(hi-lo,1);
+  const dist = val < lo ? (lo-val)/spread : (val-hi)/spread;
+  const score = Math.max(0, 1 - dist*1.5);
+  return { score:+score.toFixed(3), status: score>0 ? 'partial' : 'fail' };
+}
+function scoreCat(val, accepted) {
+  return accepted.map(v=>v.toLowerCase()).includes((val||'').toLowerCase())
+    ? { score:1.0, status:'pass' }
+    : { score:0.0, status:'fail' };
+}
+function evaluate(name, crop, inp) {
+  const f = {
+    ph:     scoreRange(inp.ph, ...crop.ph),
+    temp:   scoreRange(inp.temp, ...crop.temp),
+    rain:   scoreRange(inp.rain, ...crop.rain),
+    hum:    scoreRange(inp.hum, ...crop.hum),
+    soil:   scoreCat(inp.soil, crop.soil),
+    water:  scoreCat(inp.water, crop.water),
+    season: scoreCat(inp.season, crop.seasons),
+  };
+  const total = WEIGHTS.ph*f.ph.score + WEIGHTS.temp*f.temp.score + WEIGHTS.rain*f.rain.score
+              + WEIGHTS.hum*f.hum.score + WEIGHTS.soil*f.soil.score + WEIGHTS.water*f.water.score
+              + WEIGHTS.season*f.season.score;
+  return { name, total:+total.toFixed(4), factors:f };
+}
+
+// ══════════════════════════════════════════
+// RECOMMENDATION
+// ══════════════════════════════════════════
+function runRec() {
+  if (!picks.soil)   { toast(L.errSoil);   return; }
+  if (!picks.water)  { toast(L.errWater);  return; }
+  if (!picks.season) { toast(L.errSeason); return; }
+
+  const inp = getInputs();
+  lastInputs = inp;
+
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loading').classList.add('active');
+  document.getElementById('h-loading').textContent = L.loading;
+
+  setTimeout(() => {
+    const recs = Object.entries(CROPS)
+      .map(([n,c]) => ({ ...evaluate(n,c,inp), crop: CROPS[n] }))
+      .sort((a,b) => b.total - a.total).slice(0,3);
+    lastResults = recs;
+    renderResults(recs, inp);
+    document.getElementById('loading').classList.remove('active');
+    document.getElementById('results-page').classList.add('active');
+    // Apply lang to results
+    applyLang();
+  }, 1400);
+}
+
+function confClass(s) {
+  if (s>=0.85) return 'ex'; if (s>=0.70) return 'gd';
+  if (s>=0.55) return 'md'; return 'lw';
+}
+function confMatchLabel(s) {
+  const idx = s>=0.85?0:s>=0.70?1:s>=0.55?2:3;
+  return L.matchLabel[idx];
+}
+
+function renderResults(recs, inp) {
+  document.getElementById('r-title').textContent = L.rTitle;
+
+  // Chips
+  const chips = document.getElementById('r-chips');
+  chips.innerHTML = [
+    `🌡️ ${inp.temp}°C`, `🌧️ ${inp.rain}mm`, `⚗️ pH ${inp.ph}`,
+    `💦 ${inp.hum}%`, `🪨 ${inp.soil}`, `💧 ${inp.water}`, `📅 ${inp.season}`
+  ].map(c => `<span class="cond-chip">${c}</span>`).join('');
+
+  const body = document.getElementById('results-body');
+  body.innerHTML = '';
+
+  const rankCls = ['rank-gold','rank-silver','rank-bronze'];
+  const rankLbl = L.rankLabel;
+
+  recs.forEach((rec, i) => {
+    const pct = (rec.total * 100).toFixed(1);
+    const cls = confClass(rec.total);
+    const fillCls = { ex:'fill-ex', gd:'fill-gd', md:'fill-md', lw:'fill-lw' }[cls];
+
+    const condHtml = Object.entries(rec.factors).map(([k,v]) => {
+      const m = FACTOR_META[k];
+      const stTxt = v.status==='pass' ? L.condPass : v.status==='partial' ? L.condPartial : L.condFail;
+      return `<div class="cc-cond ${v.status}">
+        <div class="cond-icon">${m.icon}</div>
+        <div class="cond-lbl">${m.lbl}</div>
+        <div class="cond-st">${stTxt}</div>
+      </div>`;
+    }).join('');
+
+    const stepsHtml = rec.crop.steps.map(s=>`<li>${s}</li>`).join('');
+
+    const card = document.createElement('div');
+    card.className = 'crop-card';
+    card.style.animationDelay = (i*0.12)+'s';
+    card.innerHTML = `
+      <div class="cc-header">
+        <span class="cc-rank ${rankCls[i]}">${rankLbl[i]}</span>
+        <div class="cc-emoji">${rec.crop.emoji}</div>
+        <div class="cc-info">
+          <div class="cc-name">${rec.name}</div>
+          <div class="cc-desc">${rec.crop.desc}</div>
+        </div>
+        <div class="cc-score-pill">${pct}%</div>
+      </div>
+      <div class="cc-bar-wrap">
+        <div class="cc-bar-label">
+          <span>${confMatchLabel(rec.total)}</span>
+          <span>${pct}%</span>
+        </div>
+        <div class="cc-bar-track"><div class="cc-bar-fill ${fillCls}" data-w="${pct}"></div></div>
+      </div>
+      <div class="cc-conds">${condHtml}</div>
+      <div class="cc-steps">
+        <div class="cc-steps-title">${L.nextTitle}</div>
+        <ul>${stepsHtml}</ul>
+      </div>
+    `;
+    body.appendChild(card);
+
+    requestAnimationFrame(() => setTimeout(() => {
+      const bar = card.querySelector('.cc-bar-fill');
+      if (bar) bar.style.width = bar.dataset.w + '%';
+    }, 200 + i*150));
+  });
+}
+
+// ══════════════════════════════════════════
+// EXPORT FUNCTIONS
+// ══════════════════════════════════════════
+function buildPrintHTML() {
+  const inp = lastInputs;
+  const recs = lastResults;
+  let html = `<div style="font-family:Arial,sans-serif;padding:20px;color:#1b1b1b;">
+  <div style="background:#2e7d32;color:#fff;padding:16px;border-radius:12px;margin-bottom:20px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:4px;">🌾 CropIQ</div>
+    <div style="font-size:18px;font-weight:bold;">${L.rTitle}</div>
+    <div style="font-size:12px;margin-top:6px;opacity:0.8;">pH ${inp.ph} | ${inp.temp}°C | ${inp.rain}mm rain | ${inp.soil} | ${inp.water} water | ${inp.season}</div>
+  </div>`;
+
+  recs.forEach((rec, i) => {
+    const pct = (rec.total*100).toFixed(1);
+    const medals = ['🥇','🥈','🥉'];
+    html += `<div style="background:#f9f9f9;border-radius:10px;padding:16px;margin-bottom:14px;border-left:5px solid #2e7d32;">
+      <div style="font-size:20px;font-weight:bold;margin-bottom:4px;">${medals[i]} ${rec.crop.emoji} ${rec.name} — ${pct}%</div>
+      <div style="font-size:13px;color:#555;margin-bottom:10px;">${rec.crop.desc}</div>
+      <div style="font-size:13px;font-weight:bold;color:#1565c0;margin-bottom:6px;">${L.nextTitle}</div>
+      <ul style="margin:0;padding-left:16px;">
+        ${rec.crop.steps.map(s=>`<li style="margin-bottom:3px;font-size:13px;">${s}</li>`).join('')}
+      </ul>
+    </div>`;
+  });
+
+  html += `<div style="margin-top:16px;text-align:center;font-size:11px;color:#999;">Generated by CropIQ • ${new Date().toLocaleDateString()}</div>
+  </div>`;
+  return html;
+}
+
+function exportPDF() {
+  // Inject a hidden print-only style + content, trigger window.print()
+  let styleEl = document.getElementById('cropiq-print-style');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'cropiq-print-style';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `
+    @media print {
+      body > *:not(#cropiq-print-frame) { display: none !important; }
+      #cropiq-print-frame {
+        display: block !important;
+        position: fixed; inset: 0; z-index: 99999;
+        background: #fff; padding: 20px;
+        font-family: Arial, sans-serif;
+      }
+      @page { margin: 1.2cm; }
+    }
+  `;
+
+  let frame = document.getElementById('cropiq-print-frame');
+  if (!frame) {
+    frame = document.createElement('div');
+    frame.id = 'cropiq-print-frame';
+    frame.style.display = 'none';
+    document.body.appendChild(frame);
+  }
+  frame.innerHTML = buildPrintHTML();
+
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => {
+      frame.innerHTML = '';
+      styleEl.textContent = '';
+    }, 2000);
+  }, 200);
+
+  toast('🖨️ Print dialog opening — choose "Save as PDF"');
+}
+
+function exportIMG() {
+  // Draw result on a <canvas> and download as PNG
+  const recs = lastResults;
+  const inp  = lastInputs;
+  if (!recs) return;
+
+  const canvas  = document.createElement('canvas');
+  const W = 480, LINE = 26;
+  canvas.width  = W;
+
+  // First pass: measure height
+  let totalH = 80; // header
+  recs.forEach(rec => {
+    totalH += 90 + rec.crop.steps.length * LINE + 60;
+  });
+  totalH += 60; // footer
+  canvas.height = totalH;
+
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, 0, totalH);
+  grad.addColorStop(0,   '#1b5e20');
+  grad.addColorStop(0.12,'#2e7d32');
+  grad.addColorStop(0.2, '#f9f9f9');
+  grad.addColorStop(1,   '#f1f8e9');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, totalH);
+
+  // Header box
+  ctx.fillStyle = '#2e7d32';
+  roundRect(ctx, 0, 0, W, 75, 0);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 22px Arial';
+  ctx.fillText('🌾 CropIQ — ' + L.rTitle.replace('✅ ',''), 18, 34);
+  ctx.font = '12px Arial';
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.fillText(`pH ${inp.ph} | ${inp.temp}°C | ${inp.rain}mm | ${inp.soil} | ${inp.water} | ${inp.season}`, 18, 56);
+
+  let y = 90;
+  const medals = ['🥇','🥈','🥉'];
+  const rankColors = ['#ffd700','#bdbdbd','#cd7f32'];
+
+  recs.forEach((rec, i) => {
+    const pct = (rec.total * 100).toFixed(1);
+    const cardH = 80 + rec.crop.steps.length * LINE + 30;
+
+    // Card background
+    ctx.fillStyle = '#fff';
+    roundRect(ctx, 14, y, W - 28, cardH, 14);
+    ctx.shadowColor = 'rgba(0,0,0,0.1)'; ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Rank badge
+    ctx.fillStyle = rankColors[i];
+    roundRect(ctx, 14, y, 110, 24, [14, 0, 0, 14]);
+    ctx.fill();
+    ctx.fillStyle = i===0 ? '#5d4037' : i===1 ? '#1b1b1b' : '#fff';
+    ctx.font = 'bold 11px Arial';
+    ctx.fillText(L.rankLabel[i].replace(/🥇|🥈|🥉/,'').trim(), 22, y + 16);
+
+    // Crop name + score
+    ctx.fillStyle = '#1b1b1b';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText(`${rec.crop.emoji} ${rec.name}`, 22, y + 50);
+    ctx.fillStyle = '#2e7d32';
+    ctx.font = 'bold 22px Arial';
+    ctx.fillText(`${pct}%`, W - 70, y + 50);
+
+    // Desc
+    ctx.fillStyle = '#757575';
+    ctx.font = '12px Arial';
+    ctx.fillText(rec.crop.desc, 22, y + 70);
+
+    // Score bar
+    const barY = y + 80; const barW = W - 56;
+    ctx.fillStyle = '#eeeeee';
+    roundRect(ctx, 22, barY, barW, 8, 4); ctx.fill();
+    ctx.fillStyle = '#43a047';
+    roundRect(ctx, 22, barY, barW * rec.total, 8, 4); ctx.fill();
+
+    // Steps
+    ctx.fillStyle = '#1565c0';
+    ctx.font = 'bold 12px Arial';
+    ctx.fillText(L.nextTitle, 22, barY + 26);
+    ctx.font = '12px Arial';
+    ctx.fillStyle = '#1a237e';
+    rec.crop.steps.forEach((step, si) => {
+      ctx.fillText('→ ' + step, 28, barY + 44 + si * LINE);
+    });
+
+    y += cardH + 14;
+  });
+
+  // Footer
+  ctx.fillStyle = '#9e9e9e';
+  ctx.font = '11px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('Generated by CropIQ  •  ' + new Date().toLocaleDateString(), W/2, y + 20);
+
+  // Download
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = 'CropIQ_Result.png';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('✅ Image saved as CropIQ_Result.png!');
+  }, 'image/png');
+}
+
+// Canvas rounded rect helper
+function roundRect(ctx, x, y, w, h, r) {
+  if (typeof r === 'number') r = [r,r,r,r];
+  const [tl,tr,br,bl] = r;
+  ctx.beginPath();
+  ctx.moveTo(x + tl, y);
+  ctx.lineTo(x + w - tr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + tr);
+  ctx.lineTo(x + w, y + h - br);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+  ctx.lineTo(x + bl, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - bl);
+  ctx.lineTo(x, y + tl);
+  ctx.quadraticCurveTo(x, y, x + tl, y);
+  ctx.closePath();
+}
+
+function resetApp() {
+  document.getElementById('results-page').classList.remove('active');
+  document.getElementById('app').style.display = 'block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
